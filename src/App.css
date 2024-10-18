@@ -50,3 +50,16 @@
   list-style: none;
   padding-left: 0;
 }
+
+.CharacterSheetsContainer {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.CharacterSheet {
+  padding: 20px;
+  background-color: #282c34;
+  border-radius: 10px;
+  color: white;
+}
