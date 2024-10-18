@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ATTRIBUTE_LIST } from './consts';
 import { CLASS_LIST } from './consts';
 import { SKILL_LIST } from './consts';
 
 
 const CharacterSheet = () => {
+    const maximum = 70; 
   const [attributes, setAttributes] = useState({
     Strength: 10,
     Dexterity: 10,
@@ -14,7 +15,79 @@ const CharacterSheet = () => {
     Charisma: 10,
   });
 
-// formula for ability modifier
+
+
+/* API SECTION */
+
+const apiUrl = 'https://recruiting.verylongdomaintotestwith.ca/api/UzairMuhammad/character';
+
+// Function to save Character in API
+const saveCharacter = async () => {
+    const characterData = {
+      attributes,
+      skillPoints,
+      selectedClass,
+    };
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(characterData),
+      });
+    } catch (error) {
+      console.error('Error in saveCharacter req:', error);
+    }
+  };
+
+  // Function to load character, give default values if it doesn't work. 
+  const loadCharacter = async () => {
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+  
+      const responseData = await response.json();
+      const characterData = responseData.body;
+  
+      if (characterData && Object.keys(characterData).length > 0) {
+        setAttributes(characterData.attributes || {});
+        setSkillPoints(characterData.skillPoints || {});
+        setSelectedClass(characterData.selectedClass || null);
+        console.log('character data loaded');
+      } else {
+        console.log('Set default values');
+        setAttributes({
+          Strength: 10,
+          Dexterity: 10,
+          Constitution: 10,
+          Intelligence: 10,
+          Wisdom: 10,
+          Charisma: 10,
+        });
+        setSkillPoints(SKILL_LIST.reduce((acc, skill) => ({ ...acc, [skill.name]: 0 }), {}));
+      }
+    } catch (error) {
+      console.error('Error loadCharacter', error);
+    }
+  };
+  
+  
+
+  // Load character when app starts
+  useEffect(() => {
+    loadCharacter();
+  }, []);
+
+  /* END OF API SECTION */
+
+
+// Formula for ability modifier
 const calculateModifier = (attributeValue) => {
     return Math.floor((attributeValue - 10) / 2);
     };
@@ -25,7 +98,7 @@ const calculateModifier = (attributeValue) => {
     SKILL_LIST.reduce((acc, skill) => ({ ...acc, [skill.name]: 0 }), {})
   );
 
-    // constants
+    // Constants
   const intelligenceModifier =calculateModifier(attributes.Intelligence)
   const totalSkillPoints = 10 + (4 * intelligenceModifier);
   const pointsSpent = Object.values(skillPoints).reduce((sum, points) => sum + points, 0);
@@ -97,8 +170,8 @@ const calculateModifier = (attributeValue) => {
       attributeElements.push(
         <li key={attribute}>
           {attribute}: {attributeValue} -> Modifier: {modifier >= 0 ? `+${modifier}` : modifier}
-          <button onClick={() => increase(attribute)}>+</button>
-          <button onClick={() => decrease(attribute)}>-</button>
+          <button onClick={() => increaseAttribute(attribute)}>+</button>
+          <button onClick={() => decreaseAttribute(attribute)}>-</button>
         </li>
       );
     }
@@ -121,20 +194,33 @@ const calculateModifier = (attributeValue) => {
     ));
   };
 
-  // method to select a class
+  // Method to select a class
   const selectClass = (className) => {
     setSelectedClass((prevClass) => (prevClass === className ? null : className));
   };
+
+  // Get the total of attributes
+  const getTotalAttributes = () => {
+    return Object.values(attributes).reduce((total, value) => total + value, 0);
+  };
   
-  // increase
-  const increase = (attribute) => {
-    setAttributes((prevAttributes) => ({
-      ...prevAttributes,
-      [attribute]: prevAttributes[attribute] + 1,
-    }));
+  // See if you can increase
+  const canIncrease = () => {
+    return getTotalAttributes() < maximum;
   };
 
-  // show the class requirements for the selected class
+  // Increase
+  const increaseAttribute = (attribute) => {
+        if (canIncrease()) {
+
+        setAttributes((prevAttributes) => ({
+        ...prevAttributes,
+        [attribute]: prevAttributes[attribute] + 1,
+        }));
+    }
+  };
+
+  // Show the class requirements for the selected class
   const displayClassRequirements = () => {
     if (!selectedClass) {
       return <p>Select a class to see its minimum required statistics</p>;
@@ -155,8 +241,8 @@ const calculateModifier = (attributeValue) => {
   };
 
 
-  // decrease
-  const decrease = (attribute) => {
+  // Decrease
+  const decreaseAttribute = (attribute) => {
     setAttributes((prevAttributes) => ({
       ...prevAttributes,
       [attribute]: prevAttributes[attribute] > 0 ? prevAttributes[attribute] - 1 : 0,
@@ -174,6 +260,8 @@ const calculateModifier = (attributeValue) => {
       {displayClassRequirements()} 
       <h2>Available Skill Points: {remainingPoints}</h2>
       <ul>{showSkills()}</ul>
+      <button onClick={saveCharacter}>Save Character</button>
+
     </div>
   );
 };
